@@ -1,19 +1,8 @@
-%initialize.m
-% L = 1.0;
-% N = 64;
-h = L/N;
-ip = [(2:N),1];
-im = [N,(1:(N-1))];
-Nb = ceil(pi*(L/2)/(h/2));
-dtheta = 2*pi/Nb;
-kp = [(2:Nb),1];
-km = [Nb,(1:(Nb-1))];
-% K = 1;
-% rho = 1;
-% mu = 0.01;
-% tmax = 4;
-% dt = 0.01;
+global L N tmax dt;
+global h ip im Nb dtheta;
+
 clockmax = ceil(tmax/dt);
+X = zeros(Nb,2);
 
 for k=0:(Nb-1)
   theta=k*dtheta;
