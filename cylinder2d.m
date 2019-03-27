@@ -9,10 +9,10 @@ global h ip im Nb dtheta kp km;
 
 L = 1.0; % size
 N = 64; % mesh size
-K = 1.0; % force constant
+K = 100.0; % force constant
 rho = 1.0; % fluid density
 mu = 0.01; % fluid viscosity
-tmax = 5; 
+tmax = 10; 
 dt = 0.01;
 
 h = L/N; % grid size
@@ -27,28 +27,32 @@ clockmax = ceil(tmax/dt);
 %% Initialize Boundary and Flow Field
 % generate a circle of ribbon
 X = zeros(Nb,2);
-X(:,1) = L/2 + L/4*cos((1:Nb)*dtheta);
-X(:,2) = L/2 + L/4*sin((1:Nb)*dtheta);
+X(:,1) = L/2 + L/16*cos((1:Nb)*dtheta);
+X(:,2) = L/2 + L/16*sin((1:Nb)*dtheta);
+Y(:,1) = L/2 + L/16*cos((1:Nb)*dtheta);
+Y(:,2) = L/2 + L/16*sin((1:Nb)*dtheta);
 % Coordinates, [0 h 2h ... L-h]
 % Matrix index, (1 2 ... N)
 
 % velocity of fluid flow
 u=zeros(N,N,2);
 [y,x] = meshgrid(0:h:L-h,0:h:L-h);
-u(:,:,2) = sin(2*pi*x/L);
+% u(:,:,1) = sin(pi*y/L);
+u(:,:,1) = 1.0;
 
 % vorticity: v_x - u_y; contour plot vorticity.
 vorticity=(u(ip,:,2)-u(im,:,2)-u(:,ip,1)+u(:,im,1))/(2*h);
-dvorticity=(max(max(vorticity))-min(min(vorticity)))/5;
-values= (-10*dvorticity):dvorticity:(10*dvorticity);
-valminmax=[min(values),max(values)];
+% dvorticity=(max(max(vorticity))-min(min(vorticity)))/5;
+% values= (-10*dvorticity):dvorticity:(10*dvorticity);
+% valminmax=[min(values),max(values)];
 
 set(gcf,'double','on');
-contour(x,y,vorticity,values);
+% contour(x,y,vorticity,values);
+contour(x,y,vorticity)
 hold on
 plot(X(:,1),X(:,2),'ko');
 axis([0,L,0,L]);
-caxis(valminmax);
+% caxis(valminmax);
 axis equal
 axis manual
 drawnow;
@@ -87,17 +91,17 @@ end
 %% Calculation
 for clock=1:clockmax
   XX=X+(dt/2)*interp(u,X);
-  ff=spread(Force(XX),XX);
+  ff=spread(RigidForce(XX,Y),XX);
   [u,uu]=fluid(u,ff);
   X=X+dt*interp(uu,XX);
   
   % Animation
   vorticity=(u(ip,:,2)-u(im,:,2)-u(:,ip,1)+u(:,im,1))/(2*h);
-  contour(x,y,vorticity,values)
+  contour(x,y,vorticity,'ShowText','on')
   hold on
   plot(X(:,1),X(:,2),'ko')
   axis([0,L,0,L])
-  caxis(valminmax)
+%   caxis(valminmax)
   axis equal
   axis manual
   drawnow
