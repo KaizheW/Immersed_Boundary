@@ -2,6 +2,7 @@
 % This script is the main program.
 
 %%
+clear
 global L N K rho mu tmax dt;
 global a;
 global h ip im Nb dtheta kp km;
@@ -17,7 +18,7 @@ dt = 0.01;
 h = L/N; % grid size
 ip = [(2:N),1];
 im = [N,(1:(N-1))];
-Nb = ceil(pi*(L/2)/(h/2)); % some number
+Nb = ceil(pi*N); % generate a circle.
 dtheta = 2*pi/Nb;
 kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
@@ -35,7 +36,7 @@ for clock=1:clockmax
   
   % Animation
   vorticity=(u(ip,:,2)-u(im,:,2)-u(:,ip,1)+u(:,im,1))/(2*h);
-  contour(xgrid,ygrid,vorticity,values)
+  contour(x,y,vorticity,values)
   hold on
   plot(X(:,1),X(:,2),'ko')
   axis([0,L,0,L])
