@@ -9,11 +9,11 @@ global h ip im Nb dtheta kp km;
 
 L = 1.0; % size
 N = 64; % mesh size
-K = 100.0; % force constant
+K = 100000.0; % force constant
 rho = 1.0; % fluid density
 mu = 0.01; % fluid viscosity
 tmax = 10; 
-dt = 0.01;
+dt = 0.0001;
 
 h = L/N; % grid size
 ip = [(2:N),1];
@@ -27,9 +27,9 @@ clockmax = ceil(tmax/dt);
 %% Initialize Boundary and Flow Field
 % generate a circle of ribbon
 X = zeros(Nb,2);
-X(:,1) = L/2 + L/16*cos((1:Nb)*dtheta);
+X(:,1) = L/4 + L/16*cos((1:Nb)*dtheta);
 X(:,2) = L/2 + L/16*sin((1:Nb)*dtheta);
-Y(:,1) = L/2 + L/16*cos((1:Nb)*dtheta);
+Y(:,1) = L/4 + L/16*cos((1:Nb)*dtheta);
 Y(:,2) = L/2 + L/16*sin((1:Nb)*dtheta);
 % Coordinates, [0 h 2h ... L-h]
 % Matrix index, (1 2 ... N)
@@ -38,7 +38,7 @@ Y(:,2) = L/2 + L/16*sin((1:Nb)*dtheta);
 u=zeros(N,N,2);
 [y,x] = meshgrid(0:h:L-h,0:h:L-h);
 % u(:,:,1) = sin(pi*y/L);
-u(:,:,1) = 1.0;
+u(:,:,1) = 5.0;
 
 % vorticity: v_x - u_y; contour plot vorticity.
 vorticity=(u(ip,:,2)-u(im,:,2)-u(:,ip,1)+u(:,im,1))/(2*h);
@@ -90,6 +90,8 @@ end
 
 %% Calculation
 for clock=1:clockmax
+  u(1:N/32,:,1) = 5;
+  u(1:N/32,:,2) = 0;
   XX=X+(dt/2)*interp(u,X);
   ff=spread(RigidForce(XX,Y),XX);
   [u,uu]=fluid(u,ff);
