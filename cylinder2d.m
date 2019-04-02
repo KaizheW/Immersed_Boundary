@@ -27,6 +27,7 @@ clockmax = ceil(tmax/dt);
 %% Initialize Boundary and Flow Field
 % generate a circle of ribbon
 X = zeros(Nb,2);
+Y = zeros(Nb,2);
 X(:,1) = L/4 + L/16*cos((1:Nb)*dtheta);
 X(:,2) = L/2 + L/16*sin((1:Nb)*dtheta);
 Y(:,1) = L/4 + L/16*cos((1:Nb)*dtheta);
@@ -92,6 +93,8 @@ end
 for clock=1:clockmax
   u(1:N/32,:,1) = 5;
   u(1:N/32,:,2) = 0;
+  Y(:,1) = L/4 + L/16*cos((1:Nb)*dtheta);
+  Y(:,2) = L/2 + L/16*sin((1:Nb)*dtheta) + L/32*sin(2*pi*clock*dt);
   XX=X+(dt/2)*interp(u,X);
   ff=spread(RigidForce(XX,Y),XX);
   [u,uu]=fluid(u,ff);
@@ -106,6 +109,7 @@ for clock=1:clockmax
 %   caxis(valminmax)
   axis equal
   axis manual
+  title(['time = ',num2str(clock*dt)])
   drawnow
   hold off
 end
