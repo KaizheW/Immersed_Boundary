@@ -3,17 +3,23 @@
 
 %% Initialize Parameter
 clear
-global L N K rho mu tmax dt;
+global L N K rho mu tmax dt XC YC RC;
 global a;
 global h ip im Nb dtheta kp km;
 
 L = 1.0; % size
-N = 64; % mesh size
-K = 100000.0; % force constant
+N = 256; % mesh size
+K = 10000000.0; % force constant
 rho = 1.0; % fluid density
 mu = 0.01; % fluid viscosity
 tmax = 10; 
-dt = 0.0001;
+dt = 0.00001;
+XC = L/4;
+YC = L/2;
+RC = L/32;
+u0 = 5.0;
+Amp = L/32;
+T = 1;
 
 h = L/N; % grid size
 ip = [(2:N),1];
@@ -24,14 +30,18 @@ kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
 clockmax = ceil(tmax/dt);
 
+video = VideoWriter('cylinder.avi');
+video.FrameRate = 25;
+open(video);
+
 %% Initialize Boundary and Flow Field
 % generate a circle of ribbon
 X = zeros(Nb,2);
 Y = zeros(Nb,2);
-X(:,1) = L/4 + L/16*cos((1:Nb)*dtheta);
-X(:,2) = L/2 + L/16*sin((1:Nb)*dtheta);
-Y(:,1) = L/4 + L/16*cos((1:Nb)*dtheta);
-Y(:,2) = L/2 + L/16*sin((1:Nb)*dtheta);
+X(:,1) = XC + RC*cos((1:Nb)*dtheta);
+X(:,2) = YC + RC*sin((1:Nb)*dtheta);
+Y(:,1) = XC + RC*cos((1:Nb)*dtheta);
+Y(:,2) = YC + RC*sin((1:Nb)*dtheta);
 % Coordinates, [0 h 2h ... L-h]
 % Matrix index, (1 2 ... N)
 
@@ -39,7 +49,7 @@ Y(:,2) = L/2 + L/16*sin((1:Nb)*dtheta);
 u=zeros(N,N,2);
 [y,x] = meshgrid(0:h:L-h,0:h:L-h);
 % u(:,:,1) = sin(pi*y/L);
-u(:,:,1) = 5.0;
+u(:,:,1) = u0;
 
 % vorticity: v_x - u_y; contour plot vorticity.
 vorticity=(u(ip,:,2)-u(im,:,2)-u(:,ip,1)+u(:,im,1))/(2*h);
@@ -91,26 +101,37 @@ end
 
 %% Calculation
 for clock=1:clockmax
-  u(1:N/32,:,1) = 5;
-  u(1:N/32,:,2) = 0;
-  Y(:,1) = L/4 + L/16*cos((1:Nb)*dtheta);
-  Y(:,2) = L/2 + L/16*sin((1:Nb)*dtheta) + L/32*sin(2*pi*clock*dt);
+  u(1:2,:,1) = u0;
+  u(1:2,:,2) = 0;
+%   Y = Oscillate(clock, T, Amp);
+  Y(:,1) = XC + RC*cos((1:Nb)*dtheta);
+  Y(:,2) = YC + RC*sin((1:Nb)*dtheta) + Amp*sin(2*pi/T*clock*dt);
   XX=X+(dt/2)*interp(u,X);
   ff=spread(RigidForce(XX,Y),XX);
   [u,uu]=fluid(u,ff);
   X=X+dt*interp(uu,XX);
   
   % Animation
-  vorticity=(u(ip,:,2)-u(im,:,2)-u(:,ip,1)+u(:,im,1))/(2*h);
-  contour(x,y,vorticity,'ShowText','on')
-  hold on
-  plot(X(:,1),X(:,2),'ko')
-  axis([0,L,0,L])
-%   caxis(valminmax)
-  axis equal
-  axis manual
-  title(['time = ',num2str(clock*dt)])
-  drawnow
-  hold off
+  if mod(clock,1000)==1
+      vorticity=(u(ip,:,2)-u(im,:,2)-u(:,ip,1)+u(:,im,1))/(2*h);
+      if clock == 1
+          dvorticity=(max(max(vorticity))-min(min(vorticity)))/100;
+          values= (-100*dvorticity):dvorticity:(100*dvorticity);
+    %       valminmax=[min(values),max(values)];
+      end
+      contour(x,y,vorticity,values)
+      hold on
+      plot(X(:,1),X(:,2),'ko')
+      axis([0,L,0,L])
+    %   caxis(valminmax)
+      axis equal
+    %   axis manual
+      title(['time = ',num2str(clock*dt)])
+      drawnow
+      hold off
+      writeVideo(video,getframe(gcf));
+      disp(clock*dt);
+  end
 end
 %%
+close(video);
