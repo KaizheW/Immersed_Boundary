@@ -8,11 +8,11 @@ global a;
 global h ip im Nb dtheta kp km;
 
 L = 1.0; % size
-N = 256; % mesh size
-K = 10000000.0; % force constant
+N = 128; % mesh size
+K = 500000.0; % force constant
 rho = 1.0; % fluid density
 mu = 0.01; % fluid viscosity
-tmax = 10; 
+tmax = 1; 
 dt = 0.00001;
 XC = L/4;
 YC = L/2;
@@ -24,15 +24,15 @@ T = 1;
 h = L/N; % grid size
 ip = [(2:N),1];
 im = [N,(1:(N-1))];
-Nb = ceil(pi*N); % generate a circle.
-dtheta = 2*pi/Nb;
+Nb = ceil(2*pi*RC/(h/2)); 
+dtheta = 2*pi/Nb; 
 kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
 clockmax = ceil(tmax/dt);
 
-video = VideoWriter('cylinder.avi');
-video.FrameRate = 25;
-open(video);
+% video = VideoWriter('cylinder.avi');
+% video.FrameRate = 25;
+% open(video);
 
 %% Initialize Boundary and Flow Field
 % generate a circle of ribbon
@@ -129,7 +129,7 @@ for clock=1:clockmax
       title(['time = ',num2str(clock*dt)])
       drawnow
       hold off
-      writeVideo(video,getframe(gcf));
+%       writeVideo(video,getframe(gcf));
       disp(clock*dt);
   end
 end
