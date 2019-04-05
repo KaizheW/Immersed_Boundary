@@ -1,12 +1,20 @@
 %% Immersed Boundary Method, 2D
-% This script is the main program.
+% Flow past a cylinder, square domain.
+
+%% ** WARNING *****************************************
+%  ** NO LONGER EXECUTABLE! RUN THE RECTANGLE ONE!!! **
+%  ****************************************************
 
 %% Initialize Parameter
-clear
-global L N K rho mu tmax dt XC YC RC;
-global a;
-global h ip im Nb dtheta kp km;
 
+clear
+
+global L N K rho mu tmax dt;
+global h ip im Nb dtheta kp km;
+global a;
+movie_or_not = 1; % whether export movie; 1->yes; 0->no.
+
+% Global parameters
 L = 1.0; % size
 N = 128; % mesh size
 K = 500000.0; % force constant
@@ -14,34 +22,38 @@ rho = 1.0; % fluid density
 mu = 0.01; % fluid viscosity
 tmax = 1; 
 dt = 0.00001;
-XC = L/4;
-YC = L/2;
-RC = L/32;
-u0 = 5.0;
-Amp = L/32;
-T = 1;
 
 h = L/N; % grid size
 ip = [(2:N),1];
 im = [N,(1:(N-1))];
-Nb = ceil(2*pi*RC/(h/2)); 
+RC = L/32; % radius of the cylinder;
+Nb = ceil(2*pi*RC/(h/2)); %!!!!!!!!!!
 dtheta = 2*pi/Nb; 
 kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
 clockmax = ceil(tmax/dt);
 
-% video = VideoWriter('cylinder.avi');
-% video.FrameRate = 25;
-% open(video);
+% parameters specific for this code: cylinder.
+ZCX = L/4; % center of the cylinder; target point
+ZCY = L/2;
+u0 = 5.0; % prescribed inlet velocity;
+Amp = L/32; % vibration ampitude of the cylinder
+T = 0.1; % vibration period of the cylinder
+
+if movie_or_not == 1
+    video = VideoWriter('cylinder.avi');
+    video.FrameRate = 25;
+    open(video);
+end
 
 %% Initialize Boundary and Flow Field
 % generate a circle of ribbon
-X = zeros(Nb,2);
-Y = zeros(Nb,2);
-X(:,1) = XC + RC*cos((1:Nb)*dtheta);
-X(:,2) = YC + RC*sin((1:Nb)*dtheta);
-Y(:,1) = XC + RC*cos((1:Nb)*dtheta);
-Y(:,2) = YC + RC*sin((1:Nb)*dtheta);
+X = zeros(Nb,2); % Boundary points
+Z = zeros(Nb,2); % Target points
+X(:,1) = ZCX + RC*cos((1:Nb)*dtheta);
+X(:,2) = ZCY + RC*sin((1:Nb)*dtheta);
+Z(:,1) = ZCX + RC*cos((1:Nb)*dtheta);
+Z(:,2) = ZCY + RC*sin((1:Nb)*dtheta);
 % Coordinates, [0 h 2h ... L-h]
 % Matrix index, (1 2 ... N)
 
@@ -57,7 +69,8 @@ vorticity=(u(ip,:,2)-u(im,:,2)-u(:,ip,1)+u(:,im,1))/(2*h);
 % values= (-10*dvorticity):dvorticity:(10*dvorticity);
 % valminmax=[min(values),max(values)];
 
-set(gcf,'double','on');
+figure('Position', [1 1 round(1000*L) round(1000*L)])
+% set(gcf,'double','on');
 % contour(x,y,vorticity,values);
 contour(x,y,vorticity)
 hold on
@@ -67,6 +80,9 @@ axis([0,L,0,L]);
 axis equal
 axis manual
 drawnow;
+if movie_or_not == 1
+    writeVideo(video,getframe(gcf));
+end
 hold off
 
 %% 4D matrix, fluid solver
@@ -103,14 +119,10 @@ end
 for clock=1:clockmax
   u(1:2,:,1) = u0;
   u(1:2,:,2) = 0;
-  if clock == 10000
-      u(:,N/2,2) = u(:,N/2,2) + 0.1*sin(2*pi*(1:N)'/(N/16));
-  end
-%   Y = Oscillate(clock, T, Amp);
-  Y(:,1) = XC + RC*cos((1:Nb)*dtheta);
-  Y(:,2) = YC + RC*sin((1:Nb)*dtheta) + Amp*sin(2*pi/T*clock*dt);
+%   Z(:,1) = ZCX + RC*cos((1:Nb)*dtheta);
+  Z(:,2) = ZCY + RC*sin((1:Nb)*dtheta) + Amp*sin(2*pi/T*clock*dt);
   XX=X+(dt/2)*interp(u,X);
-  ff=spread(RigidForce(XX,Y),XX);
+  ff=spread(RigidForce(XX,Z),XX);
   [u,uu]=fluid(u,ff);
   X=X+dt*interp(uu,XX);
   
@@ -118,11 +130,12 @@ for clock=1:clockmax
   if mod(clock,1000)==1
       vorticity=(u(ip,:,2)-u(im,:,2)-u(:,ip,1)+u(:,im,1))/(2*h);
       if clock == 1
-          dvorticity=(max(max(vorticity))-min(min(vorticity)))/100;
-          values= (-100*dvorticity):dvorticity:(100*dvorticity);
+          dvorticity=(max(max(vorticity))-min(min(vorticity)))/10;
+          values= (-100*dvorticity):5*dvorticity:(100*dvorticity);
     %       valminmax=[min(values),max(values)];
       end
       contour(x,y,vorticity,values)
+      colormap cool
       hold on
       plot(X(:,1),X(:,2),'ko')
       axis([0,L,0,L])
@@ -132,9 +145,13 @@ for clock=1:clockmax
       title(['time = ',num2str(clock*dt)])
       drawnow
       hold off
-%       writeVideo(video,getframe(gcf));
+      if movie_or_not == 1
+        writeVideo(video,getframe(gcf));
+      end
       disp(clock*dt);
   end
 end
 %%
-close(video);
+if movie_or_not == 1
+    close(video);
+end
