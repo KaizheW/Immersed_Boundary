@@ -103,6 +103,9 @@ end
 for clock=1:clockmax
   u(1:2,:,1) = u0;
   u(1:2,:,2) = 0;
+  if clock == 10000
+      u(:,N/2,2) = u(:,N/2,2) + 0.1*sin(2*pi*(1:N)'/(N/16));
+  end
 %   Y = Oscillate(clock, T, Amp);
   Y(:,1) = XC + RC*cos((1:Nb)*dtheta);
   Y(:,2) = YC + RC*sin((1:Nb)*dtheta) + Amp*sin(2*pi/T*clock*dt);
