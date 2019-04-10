@@ -1,23 +1,24 @@
 %% Immersed Boundary Method, 2D
-% Flexible circular ribbon;
+% Penalty Immersed Boundary Method, Rigid Body.
 
 %% Initialize Parameter
 clear
-global Lx Ly Nx Ny K Kt rho mu tmax dt;
-global h ipx ipy imx imy Nb dtheta kp km;
+global Lx Ly Nx Ny K rho m mu g tmax dt;
+global h ipx ipy imx imy Nb ds dtheta kp km;
 global a;
 movie_or_not = 1; % whether export movie; 1->yes; 0->no.
 
 % Global parameters
-Lx = 2.0; % x size
-Ly = 1.0; % y size
-Nx = 256; % x mesh size
+Lx = 1.0; % x size
+Ly = 2.0; % y size
+Nx = 64; % x mesh size
 Ny = Nx/Lx*Ly; % y mesh size
-K = 1.0; % force constant of the ribbon
-Kt = 500000; % target point pull back force constant
+K = 500000.0; % force constant
 rho = 1.0; % fluid density
+m = 3.3*10^(-2); % Cylinder excess mass per unit length
 mu = 0.01; % fluid viscosity
-tmax = 5; % time range
+g = 980; % gravity
+tmax = 2; % time range
 dt = 0.00001; % discretize time
 
 h = Lx/Nx; % grid size
@@ -25,20 +26,24 @@ ipx = [(2:Nx),1];
 ipy = [(2:Ny),1];
 imx = [Nx,(1:(Nx-1))];
 imy = [Ny,(1:(Ny-1))];
-RC = Ly/8; % radius of the cylinder;
+RC = Lx/16; % radius of the cylinder;
 Nb = ceil(2*pi*RC/(h/2)); %!!!!!!!!!!
+ds = h/2;
 dtheta = 2*pi/Nb; 
 kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
 clockmax = ceil(tmax/dt);
 
 % parameters specific for this code: cylinder.
-CX = Lx/4;
-CY = Ly/2;
-u0 = 1.0; % prescribed inlet velocity;
+ZCM = [Lx/2 7*Ly/8]; % Target point mass center
+VCM = [0 0];
+Omega = 0;
+u0 = 0.0; % prescribed inlet velocity;
+dvorticity=5;
+values= (-30*dvorticity):dvorticity:(30*dvorticity);
 
 if movie_or_not == 1
-    video = VideoWriter('targeted_circle.avi');
+    video = VideoWriter('cylinder_fall.mp4');
     video.FrameRate = 25;
     open(video);
 end
@@ -46,16 +51,25 @@ end
 %% Initialize Boundary and Flow Field
 % generate a circle of ribbon
 X = zeros(Nb,2); % Boundary points
-X(:,1) = CX + RC*cos((1:Nb)*dtheta + pi);
-X(:,2) = CY + RC*sin((1:Nb)*dtheta);
-Z = X(1,:); % Fix the first point;
+Z = zeros(Nb,2); % Target points
+C = zeros(Nb,2); % Coordinates
+X(:,1) = ZCM(1) + 1.5*RC*cos((1:Nb)*dtheta+pi/4);
+X(:,2) = ZCM(2) + RC*sin((1:Nb)*dtheta);
+Z(:,1) = ZCM(1) + 1.5*RC*cos((1:Nb)*dtheta+pi/4);
+Z(:,2) = ZCM(2) + RC*sin((1:Nb)*dtheta);
+C(:,1) = 1.5*RC*cos((1:Nb)*dtheta+pi/4); % Z - ZCM
+C(:,2) = RC*sin((1:Nb)*dtheta);
+I0 = m*(sum(sum(C.^2)))*ds;
+M = Nb*ds*m;
+L = I0*Omega;
+E = eye(2);
 % Coordinates, [0 h 2h ... L-h]
 % Matrix index, (1 2 ... N)
 
 % velocity of fluid flow
 u=zeros(Nx,Ny,2);
 [y,x] = meshgrid(0:h:Ly-h,0:h:Lx-h);
-% u(:,:,2) = sin(2*pi*x/(Ly));
+% u(:,:,1) = sin(pi*y/L);
 u(:,:,1) = u0;
 
 % vorticity: v_x - u_y; contour plot vorticity.
@@ -112,30 +126,45 @@ end
 
 %% Calculation
 for clock=1:clockmax
-  u(1:2,:,1) = u0;
-  u(1:2,:,2) = 0;
+%   u(1:2,:,1) = u0;
+%   u(1:2,:,2) = 0;
+%   Z(:,1) = ZCX + RC*cos((1:Nb)*dtheta);
   XX=X+(dt/2)*interp(u,X);
-  ff=spread(ForceWithTarget(XX,Z),XX);
+  ZZCM = ZCM + (dt/2)*VCM;
+  Omega = L/I0;
+  theta = Omega*dt/2;
+  RM = [cos(theta) -sin(theta);sin(theta) cos(theta)];
+  EE = RM * E;
+  ZZ = ZZCM + (EE*C')';
+  FF = RigidForce(XX,ZZ);
+  ff = spread(FF,XX);
+  TT = torque(ZZ,ZZCM,FF);
   [u,uu]=fluid(u,ff);
-  X=X+dt*interp(uu,XX);
+  VVCM = VCM + dt/(2*M)*sum(-FF) - [0 dt*g/2];
+  LL = L + dt*TT/2';
+  X = X + dt*interp(uu,XX);
+  ZCM = ZCM + dt*VVCM;
+  OOmega = LL/I0;
+  theta = OOmega*dt;
+  RM = [cos(theta) -sin(theta);sin(theta) cos(theta)];
+  E = RM * E;
+  Z = ZCM + (E*C')';
+  VCM = VCM + dt*sum(-FF)/M - [0 dt*g];
+  L = L + dt*TT;
   
   % Animation
   if mod(clock,1000)==1
       vorticity=(u(ipx,:,2)-u(imx,:,2)-u(:,ipy,1)+u(:,imy,1))/(2*h);
-%       disp(max(max(vorticity))-min(min(vorticity)));
-      if clock == 1
-          dvorticity=(max(max(vorticity))-min(min(vorticity)));
-          values= (-500*dvorticity):10*dvorticity:(500*dvorticity);
-    %       valminmax=[min(values),max(values)];
-      end
+      disp(max(max(vorticity))-min(min(vorticity)));
       contour(x,y,vorticity,values)
+%       contour(x,y,vorticity)
       colormap cool
       hold on
       plot(mod(X(:,1),Lx),mod(X(:,2),Ly),'ko')
       axis([0,Lx,0,Ly])
-%       caxis(valminmax)
+    %   caxis(valminmax)
       axis equal
-%       axis manual
+    %   axis manual
       title(['time = ',num2str(clock*dt)])
       drawnow
       hold off
