@@ -15,7 +15,7 @@ Nx = 64; % x mesh size
 Ny = Nx/Lx*Ly; % y mesh size
 K = 500000.0; % force constant
 rho = 1.0; % fluid density
-m = 3.3*10^(-2); % Cylinder excess mass per unit length
+m = 0.03; % Cylinder excess mass per unit length
 mu = 0.01; % fluid viscosity
 g = 980; % gravity
 tmax = 2; % time range
@@ -26,7 +26,7 @@ ipx = [(2:Nx),1];
 ipy = [(2:Ny),1];
 imx = [Nx,(1:(Nx-1))];
 imy = [Ny,(1:(Ny-1))];
-RC = Lx/16; % radius of the cylinder;
+RC = Lx/32; % radius of the cylinder;
 Nb = ceil(2*pi*RC/(h/2)); %!!!!!!!!!!
 ds = h/2;
 dtheta = 2*pi/Nb; 
@@ -43,7 +43,7 @@ dvorticity=5;
 values= (-30*dvorticity):dvorticity:(30*dvorticity);
 
 if movie_or_not == 1
-    video = VideoWriter('cylinder_fall.mp4');
+    video = VideoWriter('cylinder_fall2');
     video.FrameRate = 25;
     open(video);
 end
@@ -53,12 +53,12 @@ end
 X = zeros(Nb,2); % Boundary points
 Z = zeros(Nb,2); % Target points
 C = zeros(Nb,2); % Coordinates
-X(:,1) = ZCM(1) + 1.5*RC*cos((1:Nb)*dtheta+pi/4);
-X(:,2) = ZCM(2) + RC*sin((1:Nb)*dtheta);
-Z(:,1) = ZCM(1) + 1.5*RC*cos((1:Nb)*dtheta+pi/4);
-Z(:,2) = ZCM(2) + RC*sin((1:Nb)*dtheta);
-C(:,1) = 1.5*RC*cos((1:Nb)*dtheta+pi/4); % Z - ZCM
-C(:,2) = RC*sin((1:Nb)*dtheta);
+X(:,1) = ZCM(1) + RC*cos((1:Nb)*dtheta+pi/3);
+X(:,2) = ZCM(2) + 2*RC*sin((1:Nb)*dtheta);
+Z(:,1) = ZCM(1) + RC*cos((1:Nb)*dtheta+pi/3);
+Z(:,2) = ZCM(2) + 2*RC*sin((1:Nb)*dtheta);
+C(:,1) = RC*cos((1:Nb)*dtheta+pi/3); % Z - ZCM
+C(:,2) = 2*RC*sin((1:Nb)*dtheta);
 I0 = m*(sum(sum(C.^2)))*ds;
 M = Nb*ds*m;
 L = I0*Omega;
@@ -141,7 +141,7 @@ for clock=1:clockmax
   TT = torque(ZZ,ZZCM,FF);
   [u,uu]=fluid(u,ff);
   VVCM = VCM + dt/(2*M)*sum(-FF) - [0 dt*g/2];
-  LL = L + dt*TT/2';
+  LL = L + dt*TT/2;
   X = X + dt*interp(uu,XX);
   ZCM = ZCM + dt*VVCM;
   OOmega = LL/I0;
@@ -155,12 +155,15 @@ for clock=1:clockmax
   % Animation
   if mod(clock,1000)==1
       vorticity=(u(ipx,:,2)-u(imx,:,2)-u(:,ipy,1)+u(:,imy,1))/(2*h);
-      disp(max(max(vorticity))-min(min(vorticity)));
+%       disp(Omega);
+%       disp(max(max(vorticity))-min(min(vorticity)));
       contour(x,y,vorticity,values)
 %       contour(x,y,vorticity)
       colormap cool
       hold on
       plot(mod(X(:,1),Lx),mod(X(:,2),Ly),'ko')
+      hold on
+      plot(mod(X(1,1),Lx),mod(X(1,2),Ly),'ro')
       axis([0,Lx,0,Ly])
     %   caxis(valminmax)
       axis equal
