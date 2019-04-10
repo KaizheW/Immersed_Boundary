@@ -4,46 +4,54 @@
 %% Initialize Parameter
 clear
 global Lx Ly Nx Ny K rho m mu g tmax dt;
-global h ipx ipy imx imy Nb ds dtheta kp km;
+global h ds ipx ipy imx imy Nb dtheta kp km;
 global a;
-movie_or_not = 1; % whether export movie; 1->yes; 0->no.
+movie_or_not = 0; % whether export movie; 1->yes; 0->no.
 
 % Global parameters
 Lx = 1.0; % x size
 Ly = 2.0; % y size
-Nx = 64; % x mesh size
+Nx = 128; % x mesh size
 Ny = Nx/Lx*Ly; % y mesh size
 K = 500000.0; % force constant
 rho = 1.0; % fluid density
 m = 0.03; % Cylinder excess mass per unit length
 mu = 0.01; % fluid viscosity
 g = 980; % gravity
-tmax = 2; % time range
+tmax = 1; % time range
 dt = 0.00001; % discretize time
+clockmax = ceil(tmax/dt);
 
+% Mesh
 h = Lx/Nx; % grid size
+ds = h/2;
 ipx = [(2:Nx),1];
 ipy = [(2:Ny),1];
 imx = [Nx,(1:(Nx-1))];
 imy = [Ny,(1:(Ny-1))];
+
+% parameters specific for this code: cylinder
 RC = Lx/32; % radius of the cylinder;
-Nb = ceil(2*pi*RC/(h/2)); %!!!!!!!!!!
-ds = h/2;
-dtheta = 2*pi/Nb; 
+Nb = ceil(2*pi*RC/(h/2)); % points at boundary
+dtheta = 2*pi/Nb; % polar
 kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
-clockmax = ceil(tmax/dt);
+ZCM = [Lx/2 7*Ly/8]; % Massive component initial mass center
+VCM = [0 0]; % Massive component initial velocity
+Omega = 0; % Massive component initial angular velocity
 
-% parameters specific for this code: cylinder.
-ZCM = [Lx/2 7*Ly/8]; % Target point mass center
-VCM = [0 0];
-Omega = 0;
-u0 = 0.0; % prescribed inlet velocity;
-dvorticity=5;
+% if ellipse, more parameters: x^2/a^2 + y^2/b^2 = 1
+Ratio = 2; % b/a
+TiltAngle = pi/3; % initial tilted angle
+
+% parameters specific for flow field.
+u0 = 0.0; % initial uniform flow field velocity
+dvorticity=5; % delta vorticity, used to plot vorticity field
 values= (-30*dvorticity):dvorticity:(30*dvorticity);
 
+% Movie export initial.
 if movie_or_not == 1
-    video = VideoWriter('cylinder_fall2');
+    video = VideoWriter('cylinder_fall2.mp4','MPEG-4');
     video.FrameRate = 25;
     open(video);
 end
@@ -51,14 +59,13 @@ end
 %% Initialize Boundary and Flow Field
 % generate a circle of ribbon
 X = zeros(Nb,2); % Boundary points
-Z = zeros(Nb,2); % Target points
+% Z = zeros(Nb,2); % Target points
 C = zeros(Nb,2); % Coordinates
-X(:,1) = ZCM(1) + RC*cos((1:Nb)*dtheta+pi/3);
-X(:,2) = ZCM(2) + 2*RC*sin((1:Nb)*dtheta);
-Z(:,1) = ZCM(1) + RC*cos((1:Nb)*dtheta+pi/3);
-Z(:,2) = ZCM(2) + 2*RC*sin((1:Nb)*dtheta);
-C(:,1) = RC*cos((1:Nb)*dtheta+pi/3); % Z - ZCM
-C(:,2) = 2*RC*sin((1:Nb)*dtheta);
+X(:,1) = ZCM(1) + RC*cos((1:Nb)*dtheta+TiltAngle);
+X(:,2) = ZCM(2) + Ratio*RC*sin((1:Nb)*dtheta);
+Z = X;
+C(:,1) = RC*cos((1:Nb)*dtheta+TiltAngle); % Z - ZCM
+C(:,2) = Ratio*RC*sin((1:Nb)*dtheta);
 I0 = m*(sum(sum(C.^2)))*ds;
 M = Nb*ds*m;
 L = I0*Omega;
@@ -83,7 +90,7 @@ figure('Position', [1 1 round(1000*Lx) round(1000*Ly)])
 % contour(x,y,vorticity,values);
 contour(x,y,vorticity)
 hold on
-plot(X(:,1),X(:,2),'ko');
+plot(X(:,1),X(:,2),'k.');
 axis([0,Lx,0,Ly]);
 % caxis(valminmax);
 axis equal
@@ -95,17 +102,13 @@ end
 hold off
 
 %% 4D matrix, fluid solver
-a = zeros(Nx,Ny,2,2); % fluid solver
-a(:,:,1,1) = ones(Nx,Ny);
-a(:,:,2,2) = ones(Nx,Ny);
-
+a = zeros(Nx,Ny,2,2); a(:,:,1,1) = ones(Nx,Ny); a(:,:,2,2) = ones(Nx,Ny);
 for m1=0:(Nx-1)
   for m2=0:(Ny-1)
     if~(((m1==0)||(m1==Nx/2))&&((m2==0)||(m2==Ny/2)))
       t=[2*pi/Nx;2*pi/Ny].*[m1;m2];
       s=sin(t);
       ss=(s*s')/(s'*s);
-%     a(m1+1,m2+1,:,:)=a(m1+1,m2+1,:,:)-(s*s')/(s'*s);
       a(m1+1,m2+1,1,1)=a(m1+1,m2+1,1,1)-ss(1,1);
       a(m1+1,m2+1,1,2)=a(m1+1,m2+1,1,2)-ss(1,2);
       a(m1+1,m2+1,2,1)=a(m1+1,m2+1,2,1)-ss(2,1);
@@ -113,7 +116,6 @@ for m1=0:(Nx-1)
     end
   end
 end
-
 for m1=0:(Nx-1)
   for m2=0:(Ny-1)
     t=[pi/Nx;pi/Ny].*[m1;m2];
@@ -123,12 +125,8 @@ for m1=0:(Nx-1)
   end
 end
 
-
 %% Calculation
 for clock=1:clockmax
-%   u(1:2,:,1) = u0;
-%   u(1:2,:,2) = 0;
-%   Z(:,1) = ZCX + RC*cos((1:Nb)*dtheta);
   XX=X+(dt/2)*interp(u,X);
   ZZCM = ZCM + (dt/2)*VCM;
   Omega = L/I0;
@@ -161,7 +159,7 @@ for clock=1:clockmax
 %       contour(x,y,vorticity)
       colormap cool
       hold on
-      plot(mod(X(:,1),Lx),mod(X(:,2),Ly),'ko')
+      plot(mod(X(:,1),Lx),mod(X(:,2),Ly),'k.')
       hold on
       plot(mod(X(1,1),Lx),mod(X(1,2),Ly),'ro')
       axis([0,Lx,0,Ly])
