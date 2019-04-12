@@ -6,19 +6,19 @@ clear
 global Lx Ly Nx Ny K rho m mu g tmax dt;
 global h ds ipx ipy imx imy Nb dtheta kp km;
 global a;
-movie_or_not = 0; % whether export movie; 1->yes; 0->no.
+movie_or_not = 1; % whether export movie; 1->yes; 0->no.
 
 % Global parameters
 Lx = 1.0; % x size
 Ly = 2.0; % y size
-Nx = 128; % x mesh size
+Nx = 64; % x mesh size
 Ny = Nx/Lx*Ly; % y mesh size
 K = 500000.0; % force constant
 rho = 1.0; % fluid density
 m = 0.03; % Cylinder excess mass per unit length
 mu = 0.01; % fluid viscosity
 g = 980; % gravity
-tmax = 1; % time range
+tmax = 2; % time range
 dt = 0.00001; % discretize time
 clockmax = ceil(tmax/dt);
 
@@ -36,27 +36,28 @@ Nb = ceil(2*pi*RC/(h/2)); % points at boundary
 dtheta = 2*pi/Nb; % polar
 kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
-ZCM = [Lx/2 7*Ly/8]; % Massive component initial mass center
+ZCM = [Lx/2 Ly/10]; % Massive component initial mass center
 VCM = [0 0]; % Massive component initial velocity
-Omega = 0; % Massive component initial angular velocity
+Omega = 0.01; % Massive component initial angular velocity
 
 % if ellipse, more parameters: x^2/a^2 + y^2/b^2 = 1
-Ratio = 2; % b/a
-TiltAngle = pi/3; % initial tilted angle
+Ratio = 1; % b/a
+TiltAngle = 0; % initial tilted angle
 
 % parameters specific for flow field.
 u0 = 0.0; % initial uniform flow field velocity
-dvorticity=5; % delta vorticity, used to plot vorticity field
-values= (-30*dvorticity):dvorticity:(30*dvorticity);
+u1 = 4.0; % prescribed velocity for each iteration
+dvorticity = 3; % delta vorticity, used to plot vorticity field
+values= (-50*dvorticity):dvorticity:(50*dvorticity);
 
 % Movie export initial.
 if movie_or_not == 1
-    video = VideoWriter('cylinder_fall2.mp4','MPEG-4');
+    video = VideoWriter('cylinder_fall.mp4','MPEG-4');
     video.FrameRate = 25;
     open(video);
 end
 
-%% Initialize Boundary and Flow Field
+%% Initialize Boundary and Flow Field, Show Vorticity
 % generate a circle of ribbon
 X = zeros(Nb,2); % Boundary points
 % Z = zeros(Nb,2); % Target points
@@ -127,6 +128,8 @@ end
 
 %% Calculation
 for clock=1:clockmax
+  u(:,1:2,2) = u1;
+  u(:,1:2,1) = 0;
   XX=X+(dt/2)*interp(u,X);
   ZZCM = ZCM + (dt/2)*VCM;
   Omega = L/I0;
@@ -175,7 +178,7 @@ for clock=1:clockmax
       disp(clock*dt);
   end
 end
-%%
+%% End
 if movie_or_not == 1
     close(video);
 end
