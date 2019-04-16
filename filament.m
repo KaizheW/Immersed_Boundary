@@ -6,7 +6,7 @@ clear
 global Lx Ly Nx Ny Ks Kb Kt rho M mu g;
 global h ipx ipy imx imy Nb ds kp km;
 global a;
-movie_or_not = 1; % whether export movie; 1->yes; 0->no.
+movie_or_not = 0; % whether export movie; 1->yes; 0->no.
 
 % Global parameters
 Lx = 1.0; % x size
@@ -39,7 +39,7 @@ kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
 ZX = Lx/2; % fixed point; first point of the filament
 ZY = 3*Ly/4; % Y
-alpha = -pi/4; % initial tilted angle; -pi/2 -> vertical down
+alpha = -pi/2; % initial tilted angle; -pi/2 -> vertical down
 
 % parameters specific for flow field.
 u0 = -1.0; % initial uniform flow field velocity
@@ -116,8 +116,8 @@ end
 
 %% Calculation
 for clock=1:clockmax
-  u(:,end-1:end,1) = 0;
-  u(:,end-1:end,2) = u0;
+%   u(:,end-1:end,1) = 0;
+%   u(:,end-1:end,2) = u0;
   XX=X+(dt/2)*interp(u,X);
   ff=spread_Filament(ForceFilament(XX,Z),XX);
   [u,uu]=fluid(u,ff);

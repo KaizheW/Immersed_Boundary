@@ -6,7 +6,7 @@ clear
 global Lx Ly Nx Ny K Kt rho mu tmax dt;
 global h ipx ipy imx imy Nb dtheta kp km;
 global a;
-movie_or_not = 1; % whether export movie; 1->yes; 0->no.
+movie_or_not = 0; % whether export movie; 1->yes; 0->no.
 
 % Global parameters
 Lx = 2.0; % x size
