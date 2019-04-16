@@ -1,13 +1,20 @@
 function F=ForceFilament(X,Z)
-global Nb kp km ds K Kt;
+global Nb ds Ks Kb Kt;
 
-T = K*(sqrt((X(kp,1)-X(km,1)).^2+(X(kp,2)-X(km,2)).^2)/(2*ds)-1);
-T(1) = K*(sqrt((X(2,1)-X(1,1)).^2+(X(2,2)-X(1,2)).^2)/(ds)-1);
-T(Nb) = K*(sqrt((X(Nb,1)-X(Nb-1,1)).^2+(X(Nb,2)-X(Nb-1,2)).^2)/(ds)-1);
-tau = (X(kp,:)-X(km,:))./sqrt((X(kp,1)-X(km,1)).^2+(X(kp,2)-X(km,2)).^2);
-tau(1,:) = (X(2,:)-X(1,:))./sqrt((X(2,1)-X(1,1)).^2+(X(2,2)-X(1,2)).^2);
-tau(Nb,:) = (X(Nb,:)-X(Nb-1,:))./sqrt((X(Nb,1)-X(Nb-1,1)).^2+(X(Nb,2)-X(Nb-1,2)).^2);
+% s = 1, 2, 3, ..., Nb-1, Nb;
+% size of T, tau and Ttau: Nb-1; Size of Fs, Fb, and F: Nb;
+T = Ks*( sqrt(sum((X(2:Nb,:) - X(1:Nb-1,:)).^2, 2))/ds - 1 );
+tau = (X(2:Nb,:) - X(1:Nb-1,:))./sqrt(sum((X(2:Nb,:) - X(1:Nb-1,:)).^2, 2));
 Ttau = [T T].*tau;
-F = (Ttau(kp,:)-Ttau(km,:))/(2*ds);
-F(Nb,:) = (Ttau(Nb,:)-Ttau(Nb-1,:))/(ds);
-F(1,:) = Kt*(Z-X(1,:));
+Fs = ([Ttau; 0, 0] - [0, 0; Ttau])/ds;
+
+Fb = zeros(Nb, 2);
+Fb(1,:) = -X(1,:) + 2*X(2,:) - X(3,:);
+Fb(2,:) = 2*X(1,:) - 5*X(2,:) + 4*X(3,:) - X(4,:);
+Fb(3:Nb-2,:) = -X(1:Nb-4,:) + 4*X(2:Nb-3,:) - 6*X(3:Nb-2,:) + 4*X(4:Nb-1,:) - X(5:Nb,:);
+Fb(Nb-1,:) = -X(Nb-3,:) + 4*X(Nb-2,:) - 5*X(Nb-1,:) + 2*X(Nb,:);
+Fb(Nb,:) = -X(Nb-2,:) + 2*X(Nb-1,:) - X(Nb,:);
+Fb = Kb*Fb/(ds^4);
+
+F = Fs + Fb;
+F(1,:) = F(1,:) + Kt*(Z-X(1,:));

@@ -6,21 +6,21 @@ clear
 global Lx Ly Nx Ny Ks Kb Kt rho M mu g;
 global h ipx ipy imx imy Nb ds kp km;
 global a;
-movie_or_not = 0; % whether export movie; 1->yes; 0->no.
+movie_or_not = 1; % whether export movie; 1->yes; 0->no.
 
 % Global parameters
 Lx = 1.0; % x size
 Ly = 2.0; % y size
 Nx = 64; % x mesh size
 Ny = Nx/Lx*Ly; % y mesh size
-Ks = 10.0; % stretch coefficient
+Ks = 100.0; % stretch coefficient
 Kb = 0.1; % bending rigidity
 Kt = 500000; % target point pull back force constant
-rho = 3*10^(-4); % fluid density
+rho = 1; % fluid density
 M = 4*10^(-4); % filament density
-mu = 1*10^(-5); % fluid viscosity
+mu = 0.01; % fluid viscosity
 g = 980; % gravity
-tmax = 1; % time range
+tmax = 2; % time range
 dt = 0.00001; % discretize time
 clockmax = ceil(tmax/dt);
 
@@ -32,17 +32,17 @@ imx = [Nx,(1:(Nx-1))];
 imy = [Ny,(1:(Ny-1))];
 
 % parameters specific for this code: filament.
-L = 0.1*Ly; % length of the filament
-Nb = ceil(L/(h/2)); 
+L = 0.2*Ly; % length of the filament
+Nb = ceil(L/(h/2))+1; 
 ds = h/2;
 kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
-ZX = Lx/2;
-ZY = 3*Ly/4;
-alpha = -pi/2; % initial tilted angle
+ZX = Lx/2; % fixed point; first point of the filament
+ZY = 3*Ly/4; % Y
+alpha = -pi/4; % initial tilted angle; -pi/2 -> vertical down
 
 % parameters specific for flow field.
-u0 = 1.0; % initial uniform flow field velocity
+u0 = -1.0; % initial uniform flow field velocity
 dvorticity = 3; % delta vorticity, used to plot vorticity field
 values= (-50*dvorticity):dvorticity:(50*dvorticity);
 
@@ -57,7 +57,7 @@ end
 X = zeros(Nb,2); % Boundary points
 X(:,1) = ZX + ds*(0:(Nb-1))*cos(alpha);
 X(:,2) = ZY + ds*(0:(Nb-1))*sin(alpha);
-Z = X(1,:); % Fix the first point;
+Z = [ZX,ZY]; % Fix the first point;
 % Coordinates, [0 h 2h ... L-h]
 % Matrix index, (1 2 ... N)
 
@@ -116,8 +116,8 @@ end
 
 %% Calculation
 for clock=1:clockmax
-  u(1:2,:,1) = u0;
-  u(1:2,:,2) = 0;
+  u(:,end-1:end,1) = 0;
+  u(:,end-1:end,2) = u0;
   XX=X+(dt/2)*interp(u,X);
   ff=spread_Filament(ForceFilament(XX,Z),XX);
   [u,uu]=fluid(u,ff);
@@ -127,15 +127,10 @@ for clock=1:clockmax
   if mod(clock,1000)==1
       vorticity=(u(ipx,:,2)-u(imx,:,2)-u(:,ipy,1)+u(:,imy,1))/(2*h);
       disp(max(max(vorticity))-min(min(vorticity)));
-      if clock == 1
-          dvorticity=(max(max(vorticity))-min(min(vorticity)));
-          values= (-10000*dvorticity):20*dvorticity:(10000*dvorticity);
-    %       valminmax=[min(values),max(values)];
-      end
       contour(x,y,vorticity,values)
       colormap cool
       hold on
-      plot(mod(XX(:,1),Lx),mod(XX(:,2),Lx),'ko')
+      plot(mod(X(:,1),Lx),mod(X(:,2),Ly),'ko')
       axis([0,Lx,0,Ly])
 %       caxis(valminmax)
       axis equal
