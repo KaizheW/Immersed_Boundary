@@ -6,22 +6,22 @@ clear
 global Lx Ly Nx Ny Ks Kb Kt rho M mu g dt;
 global h ipx ipy imx imy Nb ds kp km;
 global a;
-movie_or_not = 0; % whether export movie; 1->yes; 0->no.
+movie_or_not = 1; % whether export movie; 1->yes; 0->no.
 
 % Global parameters
 Lx = 1.0; % x size
-Ly = 4.0; % y size
+Ly = 2.0; % y size
 Nx = 64; % x mesh size
 Ny = Nx/Lx*Ly; % y mesh size
-Ks = 100000.0; % stretch coefficient
+Ks = 10000.0; % stretch coefficient
 Kb = 0.01; % bending rigidity
-Kt = 500000; % target point pull back force constant
+Kt = 50000; % target point pull back force constant
 rho = 1.0; % fluid density
 M = 1.0; % filament density
 mu = 0.01; % fluid viscosity
-g = 980; % gravity
+g = 0; % gravity
 tmax = 2; % time range
-dt = 0.000001; % discretize time
+dt = 0.00001; % discretize time
 clockmax = ceil(tmax/dt);
 
 % Mesh
@@ -67,7 +67,7 @@ V = zeros(Nb,2);
 u=zeros(Nx,Ny,2);
 [y,x] = meshgrid(0:h:Ly-h,0:h:Lx-h);
 % u(:,:,2) = sin(2*pi*x/(Ly));
-u(:,:,2) = u0*sin(x);
+u(:,:,2) = u0;
 
 % vorticity: v_x - u_y; contour plot vorticity.
 vorticity=(u(ipx,:,2)-u(imx,:,2)-u(:,ipy,1)+u(:,imy,1))/(2*h);
@@ -126,14 +126,14 @@ for clock=1:clockmax
   ff = spread_Filament(FF,XX);
   [u,uu] = fluid(u,ff);
   FF = Kt*(YY-XX);
-  FF(1,:) = 10*Kt*(Z-YY(1,:));
+  FF(1,:) = FF(1,:) + Kt*(YY(1,:)-Z);
   VV = V + (-FF-repmat([0 M*g],Nb,1))*(dt/2)/M;
   X = X + dt*interp(uu,XX);
   Y = Y + dt*VV;
   V = V + (-FF-repmat([0 M*g],Nb,1))*dt/M;
   
   % Animation
-  if mod(clock,1000)==1
+  if mod(clock,1000)==0
       vorticity=(u(ipx,:,2)-u(imx,:,2)-u(:,ipy,1)+u(:,imy,1))/(2*h);
       disp(max(max(vorticity))-min(min(vorticity)));
       contour(x,y,vorticity,values)
