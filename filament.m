@@ -13,12 +13,12 @@ Lx = 1.0; % x size
 Ly = 4.0; % y size
 Nx = 64; % x mesh size
 Ny = Nx/Lx*Ly; % y mesh size
-Ks = 100.0; % stretch coefficient
-Kb = 0.1; % bending rigidity
+Ks = 100000.0; % stretch coefficient
+Kb = 0.01; % bending rigidity
 Kt = 500000; % target point pull back force constant
-rho = 3e-4; % fluid density
-M = 4e-4; % filament density
-mu = 1.2e-5; % fluid viscosity
+rho = 1.0; % fluid density
+M = 1.0; % filament density
+mu = 0.01; % fluid viscosity
 g = 980; % gravity
 tmax = 2; % time range
 dt = 0.000001; % discretize time
@@ -32,17 +32,17 @@ imx = [Nx,(1:(Nx-1))];
 imy = [Ny,(1:(Ny-1))];
 
 % parameters specific for this code: filament.
-L = 2; % length of the filament
+L = 1; % length of the filament
 Nb = ceil(L/(h/2))+1; 
 ds = h/2;
 kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
 ZX = Lx/2; % fixed point; first point of the filament
 ZY = 7*Ly/8; % Y
-alpha = -pi/2; % initial tilted angle; -pi/2 -> vertical down
+alpha = -pi/2+0.1; % initial tilted angle; -pi/2 -> vertical down
 
 % parameters specific for flow field.
-u0 = -200.0; % initial uniform flow field velocity
+u0 = -1.0; % initial uniform flow field velocity
 dvorticity = 3; % delta vorticity, used to plot vorticity field
 values= (-50*dvorticity):dvorticity:(50*dvorticity);
 
@@ -67,7 +67,7 @@ V = zeros(Nb,2);
 u=zeros(Nx,Ny,2);
 [y,x] = meshgrid(0:h:Ly-h,0:h:Lx-h);
 % u(:,:,2) = sin(2*pi*x/(Ly));
-u(:,:,2) = u0;
+u(:,:,2) = u0*sin(x);
 
 % vorticity: v_x - u_y; contour plot vorticity.
 vorticity=(u(ipx,:,2)-u(imx,:,2)-u(:,ipy,1)+u(:,imy,1))/(2*h);
@@ -118,22 +118,22 @@ end
 
 %% Calculation
 for clock=1:clockmax
-  u(:,end-1:end,1) = 0;
-  u(:,end-1:end,2) = u0;
+%   u(:,end-1:end,1) = 0;
+%   u(:,end-1:end,2) = u0;
   XX = X + (dt/2)*interp(u,X);
   YY = Y + (dt/2)*V;
   FF = ForceFilament(XX,YY);
   ff = spread_Filament(FF,XX);
   [u,uu] = fluid(u,ff);
   FF = Kt*(YY-XX);
-  FF(1,:) = Kt*(Z-YY(1,:));
+  FF(1,:) = 10*Kt*(Z-YY(1,:));
   VV = V + (-FF-repmat([0 M*g],Nb,1))*(dt/2)/M;
   X = X + dt*interp(uu,XX);
   Y = Y + dt*VV;
   V = V + (-FF-repmat([0 M*g],Nb,1))*dt/M;
   
   % Animation
-  if mod(clock,1)==0
+  if mod(clock,1000)==1
       vorticity=(u(ipx,:,2)-u(imx,:,2)-u(:,ipy,1)+u(:,imy,1))/(2*h);
       disp(max(max(vorticity))-min(min(vorticity)));
       contour(x,y,vorticity,values)
