@@ -1,27 +1,32 @@
 %% Immersed Boundary Method, 2D
 % Flexible ribbon filament;
 
+% Some ideas: Ktt should be greater than Kt, for at least an order;
+% Bending regidity is important. If zero, huge vibration. Best value not
+% find yet.
+
 %% Initialize Parameter
 clear
-global Lx Ly Nx Ny Ks Kb Kt rho M mu g dt;
+global Lx Ly Nx Ny Ks Kb Kt Ktt rho M mu g dt;
 global h ipx ipy imx imy Nb ds kp km;
 global a;
-movie_or_not = 0; % whether export movie; 1->yes; 0->no.
+movie_or_not = 1; % whether export movie; 1->yes; 0->no.
 
 % Global parameters
 Lx = 20; % x size
 Ly = 60; % y size
 Nx = 128; % x mesh size
 Ny = Nx/Lx*Ly; % y mesh size
-Ks = 1e4; % stretch coefficient
-Kb = 0; % bending rigidity
-Kt = 1e4; % target point pull back force constant
+Ks = 1e8; % stretch coefficient
+Kb = 100; % bending rigidity
+Kt = 1e8; % between massless and massive filament
+Ktt = 1e8; % target point
 rho = 1.0; % fluid density
-M = 1.1; % filament density
+M = 0.1; % filament density
 mu = 1e-2; % fluid viscosity
 g = 0; % gravity
 tmax = 5; % time range
-dt = 1e-6; % discretize time
+dt = 1e-5; % discretize time
 clockmax = ceil(tmax/dt);
 
 % Mesh
@@ -39,12 +44,13 @@ kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
 ZX = Lx/2; % fixed point; first point of the filament
 ZY = 13*Ly/16; % Y
-alpha = -pi/2+0.3; % initial tilted angle; -pi/2 -> vertical down
+alpha = -pi/2-0.01; % initial tilted angle; -pi/2 -> vertical down
 
 % parameters specific for flow field.
-u0 = -100.0; % initial uniform flow field velocity
-dvorticity = 3; % delta vorticity, used to plot vorticity field
-values= (-50*dvorticity):dvorticity:(50*dvorticity);
+u0 = -50.0; % initial uniform flow field velocity
+dvorticity = 50; % delta vorticity, used to plot vorticity field
+values= [(-100*dvorticity):dvorticity:(-1*dvorticity), ...
+    (1*dvorticity):dvorticity:(100*dvorticity)];
 
 if movie_or_not == 1
     video = VideoWriter('targeted_filament2.mp4','MPEG-4');
@@ -75,7 +81,7 @@ vorticity=(u(ipx,:,2)-u(imx,:,2)-u(:,ipy,1)+u(:,imy,1))/(2*h);
 % values= (-10*dvorticity):dvorticity:(10*dvorticity);
 % valminmax=[min(values),max(values)];
 
-figure('Position', [1 1 round(10*Lx) round(10*Ly)])
+figure('Position', [1 1 round(100*Lx) round(100*Ly)])
 % set(gcf,'double','on');
 % contour(x,y,vorticity,values);
 contour(x,y,vorticity)
@@ -126,24 +132,26 @@ for clock=1:clockmax
   ff = spread_Filament(FF,XX);
   [u,uu] = fluid(u,ff);
   FF = Kt*(YY-XX);
-  FF(1,:) = FF(1,:) + Kt*(YY(1,:)-Z);
+  FF(1,:) = FF(1,:) + Ktt*(YY(1,:)-Z);
   VV = V + (-FF)*(dt/2)/M;
   X = X + dt*interp(uu,XX);
   Y = Y + dt*VV;
   V = V + (-FF)*dt/M;
   
   % Animation
-  if mod(clock,1000)==0
-      vorticity=(u(ipx,:,2)-u(imx,:,2)-u(:,ipy,1)+u(:,imy,1))/(2*h);
-      disp(max(max(vorticity))-min(min(vorticity)));
-      contour(x,y,vorticity,values)
-      colormap cool
-      hold on
+  if mod(clock,100)==0
+%       vorticity=(u(ipx,:,2)-u(imx,:,2)-u(:,ipy,1)+u(:,imy,1))/(2*h);
+%       disp(max(max(vorticity))-min(min(vorticity)));
+%       contour(x,y,vorticity,values)
+%       colormap cool
+%       hold on
       plot(mod(X(:,1),Lx),mod(X(:,2),Ly),'k.')
+      hold on
+      plot(ZX, ZY,'ro')
       axis([0,Lx,0,Ly])
 %       caxis(valminmax)
       axis equal
-%       axis manual
+      axis manual
       title(['time = ',num2str(clock*dt)])
       drawnow
       hold off
