@@ -6,22 +6,22 @@ clear
 global Lx Ly Nx Ny Ks Kb Kt rho M mu g dt;
 global h ipx ipy imx imy Nb ds kp km;
 global a;
-movie_or_not = 1; % whether export movie; 1->yes; 0->no.
+movie_or_not = 0; % whether export movie; 1->yes; 0->no.
 
 % Global parameters
-Lx = 1.0; % x size
-Ly = 2.0; % y size
-Nx = 64; % x mesh size
+Lx = 20; % x size
+Ly = 60; % y size
+Nx = 128; % x mesh size
 Ny = Nx/Lx*Ly; % y mesh size
-Ks = 10000.0; % stretch coefficient
-Kb = 0.01; % bending rigidity
-Kt = 50000; % target point pull back force constant
+Ks = 1e4; % stretch coefficient
+Kb = 0; % bending rigidity
+Kt = 1e4; % target point pull back force constant
 rho = 1.0; % fluid density
-M = 1.0; % filament density
-mu = 0.01; % fluid viscosity
+M = 1.1; % filament density
+mu = 1e-2; % fluid viscosity
 g = 0; % gravity
-tmax = 2; % time range
-dt = 0.00001; % discretize time
+tmax = 5; % time range
+dt = 1e-6; % discretize time
 clockmax = ceil(tmax/dt);
 
 % Mesh
@@ -32,23 +32,23 @@ imx = [Nx,(1:(Nx-1))];
 imy = [Ny,(1:(Ny-1))];
 
 % parameters specific for this code: filament.
-L = 1; % length of the filament
+L = 8; % length of the filament
 Nb = ceil(L/(h/2))+1; 
 ds = h/2;
 kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
 ZX = Lx/2; % fixed point; first point of the filament
-ZY = 7*Ly/8; % Y
-alpha = -pi/2+0.1; % initial tilted angle; -pi/2 -> vertical down
+ZY = 13*Ly/16; % Y
+alpha = -pi/2+0.3; % initial tilted angle; -pi/2 -> vertical down
 
 % parameters specific for flow field.
-u0 = -1.0; % initial uniform flow field velocity
+u0 = -100.0; % initial uniform flow field velocity
 dvorticity = 3; % delta vorticity, used to plot vorticity field
 values= (-50*dvorticity):dvorticity:(50*dvorticity);
 
 if movie_or_not == 1
-    video = VideoWriter('targeted_filament.mp4','MPEG-4');
-    video.FrameRate = 25;
+    video = VideoWriter('targeted_filament2.mp4','MPEG-4');
+    video.FrameRate = 30;
     open(video);
 end
 
@@ -75,7 +75,7 @@ vorticity=(u(ipx,:,2)-u(imx,:,2)-u(:,ipy,1)+u(:,imy,1))/(2*h);
 % values= (-10*dvorticity):dvorticity:(10*dvorticity);
 % valminmax=[min(values),max(values)];
 
-figure('Position', [1 1 round(1000*Lx) round(1000*Ly)])
+figure('Position', [1 1 round(10*Lx) round(10*Ly)])
 % set(gcf,'double','on');
 % contour(x,y,vorticity,values);
 contour(x,y,vorticity)
@@ -118,8 +118,8 @@ end
 
 %% Calculation
 for clock=1:clockmax
-%   u(:,end-1:end,1) = 0;
-%   u(:,end-1:end,2) = u0;
+  u(:,end-1:end,1) = 0;
+  u(:,end-1:end,2) = u0;
   XX = X + (dt/2)*interp(u,X);
   YY = Y + (dt/2)*V;
   FF = ForceFilament(XX,YY);
@@ -127,10 +127,10 @@ for clock=1:clockmax
   [u,uu] = fluid(u,ff);
   FF = Kt*(YY-XX);
   FF(1,:) = FF(1,:) + Kt*(YY(1,:)-Z);
-  VV = V + (-FF-repmat([0 M*g],Nb,1))*(dt/2)/M;
+  VV = V + (-FF)*(dt/2)/M;
   X = X + dt*interp(uu,XX);
   Y = Y + dt*VV;
-  V = V + (-FF-repmat([0 M*g],Nb,1))*dt/M;
+  V = V + (-FF)*dt/M;
   
   % Animation
   if mod(clock,1000)==0
@@ -139,7 +139,7 @@ for clock=1:clockmax
       contour(x,y,vorticity,values)
       colormap cool
       hold on
-      plot(mod(X(:,1),Lx),mod(X(:,2),Ly),'ko')
+      plot(mod(X(:,1),Lx),mod(X(:,2),Ly),'k.')
       axis([0,Lx,0,Ly])
 %       caxis(valminmax)
       axis equal
