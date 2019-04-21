@@ -1,4 +1,4 @@
-function F=ForceFilament(X,Y)
+function F=ForceFilamentMassless(X,Y)
 global Nb ds Ks Kb Kt;
 
 % s = 1, 2, 3, ..., Nb-1, Nb;
@@ -16,7 +16,7 @@ Fb(Nb-1,:) = -X(Nb-3,:) + 4*X(Nb-2,:) - 5*X(Nb-1,:) + 2*X(Nb,:);
 Fb(Nb,:) = -X(Nb-2,:) + 2*X(Nb-1,:) - X(Nb,:);
 Fb = Kb*Fb/(ds^4);
 
-Ft = Kt*(Y-X);
+Ft = Kt*(Y-X(1,:));
 
-F = Fs + Fb + Ft;
-F(1,:) = Kt*(Y(1,:)-X(1,:));
+F = Fs + Fb;
+F(1,:) = F(1,:) + Ft;
