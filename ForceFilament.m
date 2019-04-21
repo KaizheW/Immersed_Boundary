@@ -1,4 +1,4 @@
-function F=ForceFilament(X,Y)
+function F=ForceFilament(X,Y,Z)
 global Nb ds Ks Kb Kt;
 
 % s = 1, 2, 3, ..., Nb-1, Nb;
@@ -19,4 +19,4 @@ Fb = Kb*Fb/(ds^4);
 Ft = Kt*(Y-X);
 
 F = Fs + Fb + Ft;
-F(1,:) = Kt*(Y(1,:)-X(1,:));
+F(1,:) = F(1,:) + Kt*(Z-X(1,:));
