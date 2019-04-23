@@ -54,7 +54,7 @@ values= [(-100*dvorticity):dvorticity:(-1*dvorticity), ...
     (1*dvorticity):dvorticity:(100*dvorticity)];
 
 if movie_or_not == 1
-    video = VideoWriter('targeted_filament2.mp4','MPEG-4');
+    video = VideoWriter('targeted_massless_filament.mp4','MPEG-4');
     video.FrameRate = 30;
     open(video);
 end
@@ -131,7 +131,7 @@ for clock=1:clockmax
   FF = ForceFilamentMassless(XX,Z);
   ff = spread_Filament(FF,XX);
   ff(:,end-1:end,1) = ff(:,end-1:end,1) + alpha0*(-u(:,end-1:end,1));
-  ff(:,end-1:end,2) = ff(:,end-1:end,2) + alpha0*(u0-u(:,end-1:end,1));
+  ff(:,end-1:end,2) = ff(:,end-1:end,2) + alpha0*(u0-u(:,end-1:end,2));
   [u,uu] = fluid(u,ff);
   X = X + dt*interp(uu,XX);
   
@@ -156,7 +156,7 @@ for clock=1:clockmax
         writeVideo(video,getframe(gcf));
       end
       disp(clock*dt);
-      save(['filament/a',num2str(clock/1000)]);
+      save(['masslessfilament/a',num2str(clock/1000)]);
   end
 end
 %%
