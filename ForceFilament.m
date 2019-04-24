@@ -19,4 +19,4 @@ Fb = Kb*Fb/(ds^4);
 Ft = Kt*(Y-X);
 
 F = Fs + Fb + Ft;
-F(1,:) = F(1,:) + Kt*(Z-X(1,:));
+F(1,:) = F(1,:) + Kt*(Z-X(1,:))/ds;
