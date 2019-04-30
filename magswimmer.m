@@ -6,7 +6,7 @@ clear
 global Lx Ly Nx Ny Ks Kb Kt rho M mu g dt;
 global h ipx ipy imx imy Nb ds kp km;
 global a;
-movie_or_not = 0; % whether export movie; 1->yes; 0->no.
+movie_or_not = 1; % whether export movie; 1->yes; 0->no.
 
 % Global parameters
 Lx = 0.5; % x size
@@ -16,15 +16,14 @@ Ny = Nx/Lx*Ly; % y mesh size
 Ks = 1e5; % stretch coefficient
 Kb = 1e-2; % bending rigidity
 Kt = 1e5; % between massless and massive filament
-alpha0 = 1e5;
+alpha0 = 0;
 rho = 1; % fluid density
-M = 1; % filament density
+% M = 1; % filament density
 mu = 1e-2; % fluid viscosity
 g = 0; % gravity
 tmax = 1; % time range
 dt = 1e-6; % discretize time
 clockmax = ceil(tmax/dt);
-
 
 % Mesh
 h = Lx/Nx; % grid size
@@ -34,25 +33,27 @@ imx = [Nx,(1:(Nx-1))];
 imy = [Ny,(1:(Ny-1))];
 
 % parameters specific for this code: filament.
-L = 0.2; % length of the filament
+L = 0.4; % length of the filament
 Nb = ceil(L/(h/2))+1; 
 ds = h/2;
 kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
+M = ones(Nb,1)/100;
+M(1) = 1;
 ZX = Lx/2; % fixed point; first point of the filament
 ZY = Ly/2; % Y
 alpha = -pi/2; % initial tilted angle; -pi/2 -> vertical down
-Amp = 0.01;
-T = 0.1;
+Amp = 0.05;
+T = 0.05;
 
 % parameters specific for flow field.
 u0 = -0.0; % initial uniform flow field velocity
-dvorticity = 20; % delta vorticity, used to plot vorticity field
+dvorticity = 30; % delta vorticity, used to plot vorticity field
 values= [(-100*dvorticity):dvorticity:(-1*dvorticity), ...
     (1*dvorticity):dvorticity:(100*dvorticity)];
 
 if movie_or_not == 1
-    video = VideoWriter('filament_Apr25_t7.mp4','MPEG-4');
+    video = VideoWriter('magswimmer_Apr30t0.mp4','MPEG-4');
     video.FrameRate = 30;
     open(video);
 end
@@ -128,14 +129,14 @@ for clock=1:clockmax
   YY = Y + (dt/2)*V;
   FF = ForceMagSwimmer(XX,YY,Z);
   ff = spread_Filament(FF,XX);
-  ff(:,end-1:end,1) = ff(:,end-1:end,1) + alpha0*(-u(:,end-1:end,1));
-  ff(:,end-1:end,2) = ff(:,end-1:end,2) + alpha0*(u0-u(:,end-1:end,2));
+%   ff(:,end-1:end,1) = ff(:,end-1:end,1) + alpha0*(-u(:,end-1:end,1));
+%   ff(:,end-1:end,2) = ff(:,end-1:end,2) + alpha0*(u0-u(:,end-1:end,2));
   [u,uu] = fluid(u,ff);
   FF = Kt*(YY-XX);
-  VV = V + (-FF)*(dt/2)/M;
+  VV = V + (-FF)*(dt/2)./M;
   X = X + dt*interp(uu,XX);
   Y = Y + dt*VV;
-  V = V + (-FF)*dt/M;
+  V = V + (-FF)*dt./M;
   
   % Animation
   if mod(clock,1000)==0
