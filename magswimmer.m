@@ -6,7 +6,7 @@ clear
 global Lx Ly Nx Ny Ks Kb Kt rho M mu g dt;
 global h ipx ipy imx imy Nb ds kp km;
 global a;
-movie_or_not = 1; % whether export movie; 1->yes; 0->no.
+movie_or_not = 0; % whether export movie; 1->yes; 0->no.
 
 % Global parameters
 Lx = 0.5; % x size
@@ -33,17 +33,20 @@ imx = [Nx,(1:(Nx-1))];
 imy = [Ny,(1:(Ny-1))];
 
 % parameters specific for this code: filament.
-L = 0.4; % length of the filament
+L = 0.2; % length of the filament
 Nb = ceil(L/(h/2))+1; 
 ds = h/2;
 kp = [(2:Nb),1];
 km = [Nb,(1:(Nb-1))];
 M = ones(Nb,1)/100;
-M(1) = 1;
+M(1:2) = 1;
+% Kb = ones(Nb,1)/100;
+% Kb(1:10) = 1;
 ZX = Lx/2; % fixed point; first point of the filament
 ZY = Ly/2; % Y
 alpha = -pi/2; % initial tilted angle; -pi/2 -> vertical down
-Amp = 0.05;
+Af = 0.05;
+thetaf = pi/6;
 T = 0.05;
 
 % parameters specific for flow field.
@@ -53,7 +56,7 @@ values= [(-100*dvorticity):dvorticity:(-1*dvorticity), ...
     (1*dvorticity):dvorticity:(100*dvorticity)];
 
 if movie_or_not == 1
-    video = VideoWriter('magswimmer_Apr30t0.mp4','MPEG-4');
+    video = VideoWriter('magswimmer_Mayt0.mp4','MPEG-4');
     video.FrameRate = 30;
     open(video);
 end
@@ -124,10 +127,11 @@ end
 
 %% Calculation
 for clock=1:clockmax
-  Z(1) = ZX + Amp*sin(2*pi*clock*dt/T);
+  Z(1) = ZX + Af*sin(2*pi*clock*dt/T);
+  THETA = -thetaf*cos(2*pi*clock*dt/T) + alpha;
   XX = X + (dt/2)*interp(u,X);
   YY = Y + (dt/2)*V;
-  FF = ForceMagSwimmer(XX,YY,Z);
+  FF = ForceMagSwimmer(XX,YY,Z,THETA);
   ff = spread_Filament(FF,XX);
 %   ff(:,end-1:end,1) = ff(:,end-1:end,1) + alpha0*(-u(:,end-1:end,1));
 %   ff(:,end-1:end,2) = ff(:,end-1:end,2) + alpha0*(u0-u(:,end-1:end,2));

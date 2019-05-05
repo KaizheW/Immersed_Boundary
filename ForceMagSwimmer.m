@@ -1,4 +1,4 @@
-function F=ForceMagSwimmer(X,Y,Z)
+function F=ForceMagSwimmer(X,Y,Z,THETA)
 global Nb ds Ks Kb Kt;
 
 % s = 1, 2, 3, ..., Nb-1, Nb;
@@ -20,3 +20,4 @@ Ft = Kt*(Y-X);
 
 F = Fs + Fb + Ft;
 F(1,1) = F(1,1) + Kt*(Z(1) - X(1,1))/ds;
+F(2,1) = F(2,1) + Kt*(Z(1) + ds*cos(THETA) - X(2,1))/ds;
